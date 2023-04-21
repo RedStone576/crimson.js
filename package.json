@@ -1,0 +1,23 @@
+{
+    "name": "crimson.js",
+    "description": "library for tetr.io",
+    "version": "0.0.1-dev",
+    "author": "RedStone576",
+    "main": "./out/index.js",
+    "scripts": {
+        "check": "tsc --noEmit",
+        "check-watch": "tsc --noEmit --pretty --watch",
+        "build": "tsc"
+    },
+    "dependencies": {
+        "msgpackr": "^1.8.5",
+        "node-fetch": "^2.6.9",
+        "ws": "^8.13.0"
+    },
+    "devDependencies": {
+        "@types/node": "^18.15.12",
+        "@types/node-fetch": "^2.6.3",
+        "@types/ws": "^8.5.4",
+        "tsup": "^6.7.0"
+    }
+}
