@@ -1,9 +1,8 @@
-import fetch from "node-fetch"
-import getAuthed from "./getAuthed"
+import get from "./get"
 
 export default async function (token: string): Promise<any>
 {
-  const result = await getAuthed(token, "users/me")
+  const result = await get(token, "users/me", true)
 
   if (result && result.success) return result.user
   else return undefined

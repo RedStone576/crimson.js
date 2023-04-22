@@ -1,5 +1,5 @@
 import fetch from "node-fetch"
-
+  
 export default async function (token: string, url: string): Promise<any>
 {
   let res: any = await fetch(encodeURI("https://ch.tetr.io/api/" + url), {

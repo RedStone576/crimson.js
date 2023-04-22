@@ -1,4 +1,8 @@
 node_modules/
 out/
+dist/
+bin/
 demo/
 need.txt
+test.js
+test1.js

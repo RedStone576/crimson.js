@@ -1,6 +1,6 @@
 import { Packr, Unpackr } from "msgpackr"
-import eventEmitter from "events"
-import webSocket from "ws"
+import EventEmitter from "events"
+import WebSocket from "ws"
 
 import Api from "./api/mod"
 
@@ -82,14 +82,14 @@ function encoder(message: any, packr: any /* TODO */): any
   return packet
 }
 
-export default class extends eventEmitter
+export default class extends EventEmitter
 {
   private token: string
 
   private ribbon: {
     version?:         any, // todo
     endpoint?:        string,
-    despool?:         string,
+    //despool?:         string,
     spoolToken?:      any,
     migrateEndpoint?: string,
     resumeToken?:     string
@@ -122,27 +122,16 @@ export default class extends eventEmitter
     this.session = {}
   }
 
-  handleMessage(msg: any)
+  /* TODO: might try to handle n emit message properly */
+  private handleMessage(msg: any)
   {
-    if (msg.command) console.log(msg.command)
+    //if (msg.command) console.log(msg.command)
     
     this.emit(msg.command, msg.data)
   }
   
-  handleInternalMessage(msg: any)
-  {
-    if (msg.command !== "pong")
-    {
-      if (msg.command === "social.online") this.sendMessage({
-        command: "social.presence",
-        data: {
-          status: "online",
-          detail: ""
-        }
-      })
-
-      console.log(`ribbonIn ${JSON.stringify(msg)}`)
-    }    
+  private handleInternalMessage(msg: any)
+  { 
     if (msg.type === "Buffer") 
     {
       const packet  = Buffer.from(msg.data)
@@ -155,67 +144,96 @@ export default class extends eventEmitter
 
     if (msg.command !== "hello" && msg.id) 
     {
-      if (msg.id > this.session.lastReceived) this.session.lastReceived = msg.id
+      if (msg.id > (this.session.lastReceived ?? -1)) this.session.lastReceived = msg.id
       else return
     }
 
-    if (msg.command === "pong") this.session.lastPong = Date.now()
+    if (!!msg.command) this.handleCommand(msg)
     
-    else if (msg.command === "hello")
+    /*if (msg.type !== "Buffer") 
     {
-      this.session.socketId   = msg.id
-      this.ribbon.resumeToken = msg.resume
-
-      if (!this.session.authed)
-      {
-        this.sendImmediateMessage({
-          command: "authorize",
-          id: this.session.lastSent ?? 0,
-          data: {
-            token: this.token,
-            handling: { arr: 0, das: 0, sdf: 0, safelock: false },
-            signature: {
-              commit: this.ribbon.version
-            }
-          }
-        })
-
-        for (const x of msg.packets) this.handleInternalMessage(x)
-      }
-    }
-
-    else if (msg.command === "authorize")
-    {
-      if (msg.data.success)
-      {
-        this.session.authed = true
-        this.emit("ready")
-      }
-
-      else 
-      {
-        this.die()
-        console.log("failed to authorize ribbon")
-        this.emit("error", "failed to authorize")
-      }
-    }
-
-    else 
-    {
-      console.log(msg.command)
+      console.log("message in:")
       console.log(msg)
-      this.handleMessage(msg)
+    }*/
+  }
+
+  private handleCommand(msg: any)
+  {
+    switch (msg.command)
+    {
+      case "pong": 
+      {
+        this.session.lastPong = Date.now()
+        break
+      }
+
+      case "hello":
+      {
+        this.session.socketId   = msg.id
+        this.ribbon.resumeToken = msg.resume
+
+        if (!this.session.authed)
+        {
+          this.sendImmediateMessage({
+            command: "authorize",
+            id: this.session.lastSent ?? 0,
+            data: {
+              token: this.token,
+              handling: { arr: 0, das: 0, sdf: 0, safelock: false },
+              signature: {
+                commit: this.ribbon.version
+              }
+            }
+          })
+
+          for (const x of msg.packets) 
+          {
+            this.handleInternalMessage(x)
+          }
+        }
+
+        break
+      }
+      
+      case "authorize":
+      {
+        if (msg.data.success)
+        {
+          this.session.authed = true
+          
+          this.sendMessage({
+            command: "social.presence",
+            data: {
+              status: "online",
+              detail: ""
+            }
+          })
+        
+          this.emit("ready", this.ribbon.endpoint)
+        }
+
+        else 
+        {
+          this.die()
+          console.log("failed to authorize ribbon")
+          this.emit("error", "failed to authorize")
+        }
+
+        break
+      } 
+      
+      default: this.handleMessage(msg)
     }
   }
 
-  sendImmediateMessage(message: any) // TODO 
+  sendImmediateMessage(msg: any) // TODO 
   {
-    this.ws.send(encoder(message, this.packr))
+    this.ws.send(encoder(msg, this.packr))
   }
 
   sendMessage(message: any)
   {
-    this.session.lastSent = !!this.session.lastSent ? this.session.lastSent + 1 : 1 
+    this.session.lastSent = !!this.session.lastSent ? (this.session.lastSent + 1) : 1 
     
     message.id = this.session.lastSent
 
@@ -255,28 +273,19 @@ export default class extends eventEmitter
 
   async connect(endpoint?: string | null | undefined, fn?: () => void): Promise<void>
   {
-    if (!!endpoint) console.log(endpoint)
+    //if (!!endpoint) console.log(endpoint)
   
     if (fn !== undefined) fn() 
 
     this.session.lastPong = Date.now()
     this.ribbon.version   = await Api.game.getRibbonVersion(this.token)
-    
-    //endpoint = (endpoint !== null && endpoint !== undefined) ? endpoint : await Api.game.getRibbonEndpoint(this.token) as string
 
-    endpoint = await Api.game.getRibbonEndpoint(this.token) as string
-
-    console.log("index")
+    const spool = (endpoint !== null && endpoint !== undefined) ? { endpoint, detail: "recommended", token: this.ribbon.spoolToken } : await Api.game.getSpool(this.token)
     
-    this.ribbon.despool    = endpoint.split("/ribbon")[0]
-    this.ribbon.endpoint   = "/ribbon" + endpoint.split("/ribbon")[1]
-    //this.ribbon.spoolToken = await Api.game.getSpoolToken(this.token)
+    this.ribbon.endpoint   = spool.endpoint
+    this.ribbon.spoolToken = spool.token
     
-    const spoolObj = await Api.game.getSpoolToken(this.token)
-    
-    //this.ws = new webSocket(`wss://${this.ribbon.despool}${this.ribbon.endpoint}`, this.ribbon.spoolToken)
-
-    this.ws = new webSocket(`wss://${this.ribbon.despool}${spoolObj.endpoint}`, spoolObj.spools.token)
+    this.ws = new WebSocket(`wss:${this.ribbon.endpoint}`, this.ribbon.spoolToken)
     
     this.ws.on("open", () =>
     {
@@ -294,7 +303,7 @@ export default class extends eventEmitter
       this.session.open = true
       this.session.dead = false
 
-      console.log(`[RIBBON] ws opened: ${this.ws.url}`)
+      //console.log(`[RIBBON] ws opened: ${this.ws.url}`)
 
       if (this.ribbon.resumeToken) 
       {
@@ -304,7 +313,7 @@ export default class extends eventEmitter
           resumetoken: this.ribbon.resumeToken
         })
         
-        this.sendImmediateMessage({ command: "hello", packets: /*this.sendHistory*/ [] })
+        this.sendImmediateMessage({ command: "hello", packets: this.session.messageHistory ?? [] })
       } 
 
       else this.sendImmediateMessage({ command: "new" })
