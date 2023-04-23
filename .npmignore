@@ -1,0 +1,9 @@
+node_modules/
+out/
+bin/
+demo/
+need.txt
+test.js
+test1.js
+src/
+tsconfig.json
