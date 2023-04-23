@@ -1,8 +1,10 @@
 # crimson.js
 
-my attempt at building a library for interacting with both main tetr.io api and tetra channel.  use an approved bot account btw
+my attempt at building a library for interacting with both main tetr.io api and tetra channel.  
+use an approved bot account btw
 
-initial ribbon code is stolen from [craftxbox/Autohost](https://github.com/craftxbox/Autohost), forked from [Zudo/autohost](https://gitlab.com/Zudo/autohost). shout out to them !!
+initial ribbon code is stolen from [craftxbox/Autohost](https://github.com/craftxbox/Autohost), forked from [Zudo/autohost](https://gitlab.com/Zudo/autohost)  
+shout out to them !!
 
 ---
 
@@ -11,15 +13,27 @@ initial ribbon code is stolen from [craftxbox/Autohost](https://github.com/craft
 
 ---
 
-this thing is still messy so any contribution (especially for ideas on naming things) is appreciated
+### how to build
 
-also here's some ongoing example:
+- install typescript
+- run `npm install` or `npm install --production=false`
+- then run `tsc` and it will emits those source files to `./out/` 
+- bundle them by running `npx run bundle`
+- it should bundle all of the files into `./dist/`
+  
+this thing is still pretty messy so any contribution (especially for ideas on naming things) is appreciated
+
+### some ongoing example
+
 ```js
 const crimson = require("../dist/index.js")
 
 const client = new crimson("<ur bot token>")
+// or
+const client = new crimson.default("<still ur bot token>")
 
-client.once("ready", (endpoint) => {
+client.once("ready", (endpoint) => 
+{
   console.log("ready")
   console.log(`connected to ${endpoint}`)
 })
