@@ -5,19 +5,21 @@ import gameGetRibbonVersion  from "./game/getRibbonVersion"
 import gameGetSpool          from "./game/getSpool"
 //import gamePost               from "./game/post"
 
-import channelGet from "./channel/get"
+//import channelGet         from "./channel/get"
+//import channelGetUser     from "./channel/getUser"
 
 export default {
   game: { 
-    get:               gameGet, 
-    getMe:             gameGetMe,
-    getDespool:        gameGetDespool, 
-    getRibbonVersion:  gameGetRibbonVersion,
-    getSpool:          gameGetSpool, 
-    //postAuthed:      gamePost
+    //get:              gameGet, 
+    getMe:            gameGetMe,
+    getDespool:       gameGetDespool, 
+    getRibbonVersion: gameGetRibbonVersion,
+    getSpool:         gameGetSpool, 
+    //postAuthed:     gamePost
   },
 
-  channel: {
-    get: channelGet
-  }
+  /*channel: {
+    get:                channelGet,
+    getUser:            channelGetUser,
+  }*/
 }

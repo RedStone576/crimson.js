@@ -10,6 +10,8 @@ shout out to them !!
 
 [my discord server](https://discord.gg/C2qHe7F)  
 [tetr.io bot docs](https://github.com/Poyo-SSB/tetrio-bot-docs)
+[tetra channel api docs](https://tetr.io/about/api)
+[npm](https://www.npmjs.com/package/crimson.js)
 
 ---
 
@@ -21,7 +23,7 @@ shout out to them !!
 - bundle them by running `npx run bundle`
 - it should bundle all of the files into `./dist/`
   
-this thing is still pretty messy so any contribution (especially for ideas on naming things) is appreciated
+this thing is still pretty messy so any contribution (especially for ideas on naming things) is appreciated  
 
 ### some ongoing example
 

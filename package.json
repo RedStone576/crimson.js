@@ -1,10 +1,9 @@
 {
     "name": "crimson.js",
     "description": "library for tetr.io",
-    "version": "0.0.1-wip",
+    "version": "0.0.1-dev",
     "author": "RedStone576",
     "license": "Artistic-2.0",
-    
     "homepage": "https://github.com/RedStone576/crimson.js",
     "repository": {
         "type": "git",
@@ -18,29 +17,26 @@
         "tetrio",
         "tetr.io"
     ],
-    
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
-    
     "scripts": {
         "check": "tsc --noEmit",
         "check-watch": "tsc --noEmit --pretty --watch",
         "build": "tsc",
         "bundle": "npx tsup src/ --format cjs,esm --dts --treeshake --target es2022"
     },
-    
     "dependencies": {
         "msgpackr": "^1.8.5",
         "node-fetch": "^2.6.9",
         "ws": "^8.13.0"
     },
-    
     "devDependencies": {
         "@types/node": "^18.15.12",
         "@types/node-fetch": "^2.6.3",
         "@types/ws": "^8.5.4",
         "tsup": "^6.7.0",
+        "typedoc": "^0.24.6",
         "typescript": "^5.0.4"
     }
 }
