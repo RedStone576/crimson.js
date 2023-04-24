@@ -9,9 +9,9 @@ shout out to them !!
 ---
 
 [my discord server](https://discord.gg/C2qHe7F)  
-[tetr.io bot docs](https://github.com/Poyo-SSB/tetrio-bot-docs)
-[tetra channel api docs](https://tetr.io/about/api)
-[npm](https://www.npmjs.com/package/crimson.js)
+[tetr.io bot docs](https://github.com/Poyo-SSB/tetrio-bot-docs)   
+[tetra channel api docs](https://tetr.io/about/api)   
+[npm](https://www.npmjs.com/package/crimson.js)   
 
 ---
 
