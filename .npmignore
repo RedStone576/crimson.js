@@ -2,9 +2,11 @@ node_modules/
 out/
 bin/
 demo/
+_demo/
 need.txt
 test.js
 test1.js
 src/
 tsconfig.json
 notes.md
+.gitattributes

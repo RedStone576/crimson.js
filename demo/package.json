@@ -1,0 +1,11 @@
+{
+    "name": "crimsondotjayes",
+    "version": "0.0.1",
+    "private": true,
+    "scripts": {
+        "link": "npm install -S"
+    },
+    "dependencies": {
+        "crimson.js": "file:../"
+    }
+}
