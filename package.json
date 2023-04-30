@@ -1,7 +1,7 @@
 {
     "name": "crimson.js",
     "description": "library for tetr.io",
-    "version": "0.0.2-dev",
+    "version": "0.0.3-dev",
     "author": "RedStone576",
     "license": "Artistic-2.0",
     "homepage": "https://github.com/RedStone576/crimson.js",
@@ -24,7 +24,7 @@
         "check": "tsc --noEmit",
         "check-watch": "tsc --noEmit --pretty --watch",
         "build": "tsc",
-        "bundle": "npx tsup src/ --format cjs,esm --dts --target es2022",
+        "bundle": "npx tsup src/ --format cjs,esm --dts --treeshake --target es2022",
         "test-bundle-esm": "npx tsup src/ --format esm --treeshake --target es2022",
         "test-bundle-cjs": "npx tsup src/ --format cjs --treeshake --target es2022"
     },

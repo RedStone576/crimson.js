@@ -1,8 +1,9 @@
 import { Packr, Unpackr } from "msgpackr"
-import EventEmitter from "events"
-import WebSocket from "ws"
+import EventEmitter       from "events"
+import WebSocket          from "ws"
 
-import Api from "@api"
+import { EVENTS_TYPES, EventsTypes } from "~/constant"
+import Api                           from "@api"
 
 const globalPackr   = new Packr({ bundleStrings: false })
 const globalUnpackr = new Unpackr({ bundleStrings: false })
@@ -19,15 +20,28 @@ const EXTENSION_TAG = {
   PONG: 0x0C  // server
 }
 
-export default class extends EventEmitter
+class Emitter extends EventEmitter
 {
-  private token: string
+  override on   = (event: EventsTypes, func: any) => super.on(event, func)
+  override once = (event: EventsTypes, func: any) => super.once(event, func)
+  override off  = (event: EventsTypes, func: any) => super.off(event, func)
+  override emit = (event: EventsTypes, data: any) => super.emit(event, data)
+}
+
+export default class Client 
+{
+  public events: Emitter
+
+  public user: {
+    token?:    string,
+    id?:       string,
+    username?: string
+  }
 
   private ribbon: {
-    version?:         any, // todo
+    version?:         string,
     endpoint?:        string,
-    //despool?:         string,
-    spoolToken?:      any,
+    spoolToken?:      string,
     migrateEndpoint?: string,
     resumeToken?:     string
   }
@@ -36,43 +50,155 @@ export default class extends EventEmitter
     open?:           boolean,
     dead?:           boolean,
     authed?:         boolean,
-    socketId?:       any, // todo
+    id?:             string | number,
     messageHistory?: any[],
     messageQueue?:   any[]
     lastPong?:       number,
     lastSent?:       number,
-    lastReceived?:   any,
+    lastReceived?:   string | number,
   }
 
-  private ws?:      any
+  private ws?:      WebSocket
   private packr?:   typeof globalPackr
   private unpackr?: typeof globalUnpackr
-  
-  private heartbeat: any
 
+  private heartbeat: any
+ 
   constructor(token: string)
   {
-    super()
-
-    this.token   = token
+    this.events  = new Emitter()
+    this.user    = {}
     this.ribbon  = {}
     this.session = {}
+
+    this.user.token = token
   }
 
-  /* TODO: might try to handle n emit message properly */
-  private handleMessage(msg: any)
+  async connect(endpoint?: string)
   {
-    //if (msg.command) console.log(msg.command)
+    if (!this.user.token) return
+    if (!!this.session.authed) return
+
+    const user  = await Api.game.getMe(this.user.token)
+    const spool = (!!endpoint || user.role !== "bot") ? { endpoint, detail: "migrated", token: this.ribbon.spoolToken } : await Api.game.getSpool(this.user.token)
+
+    if (user.role !== "bot") return console.log(":3")
+
+    this.session.lastPong  = Date.now()
+    this.user.id           = user._id
+    this.user.username     = user.username
+    this.ribbon.endpoint   = spool.endpoint
+    this.ribbon.spoolToken = spool.token
+    this.ribbon.version    = await Api.game.getRibbonVersion(this.user.token)
+  
+    this.ws = new WebSocket(`wss:${this.ribbon.endpoint}`, this.ribbon.spoolToken)
     
-    this.emit(msg.command, msg.data)
+    this.ws.on("open",    this.#_wsOnOpen.bind(this))
+    this.ws.on("message", this.#_wsOnMessage.bind(this))
+    this.ws.on("close",   this.#_wsOnClose.bind(this))
+  }
+
+  #_wsOnOpen()
+  {
+    this.packr = new Packr({
+      bundleStrings: false,
+      sequential: true
+    })
+
+    this.unpackr = new Unpackr({
+      bundleStrings: false,
+      sequential: true,
+      structures: []
+    })
+
+    this.session.open = true
+    this.session.dead = false
+
+    if (!this.ribbon.resumeToken) this.sendMessageDirect({ command: "new" })
+    else
+    {
+      this.sendMessageDirect({
+        command:     EVENTS_TYPES.CLIENT_RESUME,
+        socketid:    this.session.id,
+        resumetoken: this.ribbon.resumeToken
+      })
+        
+      this.sendMessageDirect({ command: "hello", packets: this.session.messageHistory ?? [] })
+    }
+
+    this.heartbeat = setInterval(() => 
+    {
+      if (this.ws!.readyState !== 1) return
+      if (Date.now() - this.session.lastPong! > 30000) this.ws!.close(4001, "pong timeout") /* */
+
+      this.ws!.send(new Uint8Array([RIBBON_TAG.EXTENSION, EXTENSION_TAG.PING]))
+    }, 5000)
   }
   
-  private handleInternalMessage(msg: any)
-  { 
+  #_wsOnMessage(data: any)
+  {
+    const messages = decode(new Uint8Array(data), this.unpackr)
+    if (messages?.error) return      
+    for (const x of messages) this.handleInternalMessage(x)
+  }
+  
+  #_wsOnClose(e: any)
+  {
+    /* emit this */
+    //if (!!e) console.log(e)
+  
+    if (!!this.ribbon.migrateEndpoint) 
+    {
+      this.connect(this.ribbon.migrateEndpoint)
+      this.ribbon.migrateEndpoint = ""
+      return
+    }
+
+    this.ws!.removeAllListeners()
+    this.session.open = false
+
+    clearInterval(this.heartbeat)
+
+    if (!this.session.dead) this.connect()
+  }
+
+  /** send message to ribbon but direct, meh */
+  sendMessageDirect(msg: any): void
+  {
+    //console.log(msg)
+  
+    this.ws!.send(encode(msg, this.packr))
+  }
+
+  /** send message to ribbon */
+  sendMessage(msg: any): void
+  {
+    this.session.lastSent = !!this.session.lastSent ? (this.session.lastSent + 1) : 1 
+    
+    msg.id = this.session.lastSent
+
+    if (this.session.messageQueue === undefined) this.session.messageQueue     = []
+    if (this.session.messageHistory === undefined) this.session.messageHistory = [] 
+    
+    this.session.messageQueue.push(msg)
+    this.session.messageHistory.push(msg)
+    
+    if (this.session.messageQueue.length >= 500) this.session.messageHistory.shift()    
+    if (!this.session.open) return
+    
+    for (let i = 0; i < this.session.messageQueue!.length; i++) 
+    {
+      const message = this.session.messageQueue!.shift()
+      this.sendMessageDirect(message)
+    }
+  }
+
+  private handleInternalMessage(msg: any): void
+  {
     if (msg.type === "Buffer") 
     {
       const packet  = Buffer.from(msg.data)
-      const message = decoder(packet, this.unpackr)
+      const message = decode(packet, this.unpackr)
       
       if (message?.error) return
       
@@ -86,36 +212,31 @@ export default class extends EventEmitter
     }
 
     if (!!msg.command) this.handleCommand(msg)
-    
-    /*if (msg.type !== "Buffer") 
-    {
-      console.log("message in:")
-      console.log(msg)
-    }*/
+    //else console.log(msg)
   }
 
   private handleCommand(msg: any)
   {
-    switch (msg.command)
+    switch(msg.command)
     {
-      case "pong": 
+      case EVENTS_TYPES.RIBBON_PONG:
       {
         this.session.lastPong = Date.now()
         break
       }
 
-      case "hello":
+      case EVENTS_TYPES.RIBBON_HELLO: 
       {
-        this.session.socketId   = msg.id
+        this.session.id         = msg.id
         this.ribbon.resumeToken = msg.resume
 
         if (!this.session.authed)
         {
-          this.sendImmediateMessage({
+          this.sendMessageDirect({
             command: "authorize",
             id: this.session.lastSent ?? 0,
             data: {
-              token: this.token,
+              token: this.user.token,
               handling: { arr: 0, das: 0, sdf: 0, safelock: false },
               signature: {
                 commit: this.ribbon.version
@@ -131,8 +252,8 @@ export default class extends EventEmitter
 
         break
       }
-      
-      case "authorize":
+
+      case EVENTS_TYPES.RIBBON_AUTHORIZE:
       {
         if (msg.data.success)
         {
@@ -146,160 +267,52 @@ export default class extends EventEmitter
             }
           })
         
-          this.emit("ready", this.ribbon.endpoint)
+          this.events.emit(EVENTS_TYPES.SESSION_READY, this.ribbon.endpoint)
         }
 
-        else 
+        else
         {
           this.die()
-          console.log("failed to authorize ribbon")
-          this.emit("error", "failed to authorize")
+          this.events.emit(EVENTS_TYPES.SESSION_ERROR, "failed to authorize ribbon")
         }
 
         break
-      } 
+      }
+
+      case EVENTS_TYPES.RIBBON_MIGRATE: 
+      {
+        this.ribbon.migrateEndpoint = this.ribbon.endpoint!.split("/ribbon/")[0] + msg.data.endpoint
+        this.session.authed         = false
+        this.die()
+
+        //this.events.emit("SESSION_MIGRATE", "")
       
+        break
+      }
+
       default: this.handleMessage(msg)
     }
   }
 
-  sendImmediateMessage(msg: any) // TODO 
+  private handleMessage(msg: any): void
   {
-    this.ws.send(encoder(msg, this.packr))
+    this.events.emit(msg.command, msg.data)
   }
 
-  sendMessage(message: any)
+  /** kill the client */
+  die(sad?: boolean): void
   {
-    this.session.lastSent = !!this.session.lastSent ? (this.session.lastSent + 1) : 1 
-    
-    message.id = this.session.lastSent
-
-    if (this.session.messageQueue === undefined) this.session.messageQueue     = []
-    if (this.session.messageHistory === undefined) this.session.messageHistory = [] 
-    
-    this.session.messageQueue.push(message)
-    this.session.messageHistory.push(message)
-    
-    if (this.session.messageQueue.length >= 500) this.session.messageHistory.shift()
-    
-    this.flushQueue()
-  }
-
-  flushQueue()
-  {
-    if (!this.session.open) return
-    
-    /* TODO: rewrite this */
-    for (let i = 0; i < this.session.messageQueue!.length; i++) 
-    {
-      const message = this.session.messageQueue!.shift()
-      this.sendImmediateMessage(message)
-    }
-  }
-  
-  die(sad?: boolean)
-  {
-    if (this.session.dead) return
-
-    this.session.dead = true
-
+    if (!!this.session.dead) return
     if (this.ws) this.ws.close(1000, "die")
 
-    this.emit("dead", !!sad)
-  }
-
-  async connect(endpoint?: string | null | undefined, fn?: () => void): Promise<void>
-  {
-    //if (!!endpoint) console.log(endpoint)
-  
-    if (fn !== undefined) fn() 
-
-    this.session.lastPong = Date.now()
-    this.ribbon.version   = await Api.game.getRibbonVersion(this.token)
-
-    const spool = (endpoint !== null && endpoint !== undefined) ? { endpoint, detail: "recommended", token: this.ribbon.spoolToken } : await Api.game.getSpool(this.token)
-    
-    this.ribbon.endpoint   = spool.endpoint
-    this.ribbon.spoolToken = spool.token
-    
-    this.ws = new WebSocket(`wss:${this.ribbon.endpoint}`, this.ribbon.spoolToken)
-    
-    this.ws.on("open", () =>
-    {
-      this.packr = new Packr({
-        bundleStrings: false,
-        sequential: true
-      })
-
-      this.unpackr = new Unpackr({
-        bundleStrings: false,
-        sequential: true,
-        structures: []
-      })
-
-      this.session.open = true
-      this.session.dead = false
-
-      //console.log(`[RIBBON] ws opened: ${this.ws.url}`)
-
-      if (this.ribbon.resumeToken) 
-      {
-        this.sendImmediateMessage({
-          command: "resume",
-          socketid: this.session.socketId,
-          resumetoken: this.ribbon.resumeToken
-        })
-        
-        this.sendImmediateMessage({ command: "hello", packets: this.session.messageHistory ?? [] })
-      } 
-
-      else this.sendImmediateMessage({ command: "new" })
-
-      this.heartbeat = setInterval(() =>
-      {
-        if (this.ws.readyState !== 1) return
-        
-        if (Date.now() - this.session.lastPong! > 30000) 
-        {
-          console.log(`[RIBBON] pong timout, disconnecting`)
-          this.ws.close(4001, "pong timeout")
-        }
-
-        this.ws.send(new Uint8Array([RIBBON_TAG.EXTENSION, EXTENSION_TAG.PING]))
-      }, 5000)
-    })
-
-    this.ws.on("message", (data: any) /* TODO: type this */ => 
-    {
-      const messages = decoder(new Uint8Array(data), this.unpackr)
-      
-      if (messages?.error) return
-      
-      for (const x of messages) this.handleInternalMessage(x)
-    })
-
-    this.ws.on("close", (code: any, reason: any) =>
-    {
-      console.log(`[RIBBON] ws closed: ${reason} ${code}`)
-
-      if (this.ribbon.migrateEndpoint, () => console.log("migrating")) 
-      {
-        this.connect(this.ribbon.migrateEndpoint)
-        
-        return
-      }
-
-      this.ws.removeAllListeners()
-      this.session.open = false
-      
-      clearInterval(this.heartbeat)
-
-      if (!this.session.dead) this.connect(null)
-    })
+    this.session.dead = true
+    this.events.emit(EVENTS_TYPES.SESSION_DEAD, !!sad)
   }
 }
 
-function decoder(packet: any, unpackr: any /* TODO */): any
+/* */
+
+function decode(packet: any, unpackr: any): any
 {
   if (packet[0] === RIBBON_TAG.STANDARD_ID) return unpackr.unpackMultiple(packet.slice(1))
 
@@ -337,7 +350,7 @@ function decoder(packet: any, unpackr: any /* TODO */): any
       pointer += lengths[i];
     }
 
-    return [].concat(...items.map(item => decoder(item, unpackr)))
+    return [].concat(...items.map(item => decode(item, unpackr)))
   }
 
   else if (packet[0] === RIBBON_TAG.EXTENSION)
@@ -349,7 +362,7 @@ function decoder(packet: any, unpackr: any /* TODO */): any
   else return [unpackr.unpack(packet)]
 }
 
-function encoder(message: any, packr: any /* TODO */): any
+function encode(message: any, packr: any): any
 {
   const msgpacked = packr.encode(message)
   const packet    = new Uint8Array(msgpacked.length + 1)

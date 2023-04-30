@@ -14,5 +14,11 @@
             "@api": ["./src/api/mod"],
             "@model/*": ["./src/model/*"]
         }
-    }
+    },
+
+    "exclude": [
+        "./demo/", 
+        "./out/", 
+        "./dist/"
+    ]
 }
