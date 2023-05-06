@@ -2,8 +2,9 @@ import { Packr, Unpackr } from "msgpackr"
 import EventEmitter       from "events"
 import WebSocket          from "ws"
 
-import { EVENTS_TYPES, EventsTypes } from "~/constant"
-import Api                           from "@api"
+import { EVENTS_TYPES } from "~/constant"
+import * as Api         from "~/api/mod"
+import * as Types       from "~/types"
 
 const globalPackr   = new Packr({ bundleStrings: false })
 const globalUnpackr = new Unpackr({ bundleStrings: false })
@@ -20,17 +21,23 @@ const EXTENSION_TAG = {
   PONG: 0x0C  // server
 }
 
-class Emitter extends EventEmitter
+interface Emitter<E extends Record<string, any>> 
 {
-  override on   = (event: EventsTypes, func: any) => super.on(event, func)
-  override once = (event: EventsTypes, func: any) => super.once(event, func)
-  override off  = (event: EventsTypes, func: any) => super.off(event, func)
-  override emit = (event: EventsTypes, data: any) => super.emit(event, data)
+  on   <T extends keyof E> (event: T, listener: (data: E[T]) => void): this
+  once <T extends keyof E> (event: T, listener: (data: E[T]) => void): this
+  off  <T extends keyof E> (event: T, listener: (data: E[T]) => void): this
+  emit <T extends keyof E> (event: T, args: E[T]): boolean
+
+  // fallback to unknown
+  on   <T extends Exclude<string, keyof E>>(event: T, listener: (data: unknown) => void): this
+  once <T extends Exclude<string, keyof E>>(event: T, listener: (data: unknown) => void): this
+  off  <T extends Exclude<string, keyof E>>(event: T, listener: (data: unknown) => void): this
+  emit <T extends Exclude<string, keyof E>>(event: T, data: any): boolean
 }
 
 export default class Client 
 {
-  public events: Emitter
+  public events: Emitter<Types.ClientEvents>
 
   public user: {
     token?:    string,
@@ -58,15 +65,14 @@ export default class Client
     lastReceived?:   string | number,
   }
 
-  private ws?:      WebSocket
-  private packr?:   typeof globalPackr
-  private unpackr?: typeof globalUnpackr
-
+  private ws?:       any
+  private packr?:    any
+  private unpackr?:  any
   private heartbeat: any
  
   constructor(token: string)
   {
-    this.events  = new Emitter()
+    this.events  = new EventEmitter()
     this.user    = {}
     this.ribbon  = {}
     this.session = {}
@@ -98,6 +104,7 @@ export default class Client
     this.ws.on("close",   this.#_wsOnClose.bind(this))
   }
 
+  /** @hidden */
   #_wsOnOpen()
   {
     this.packr = new Packr({
@@ -134,14 +141,16 @@ export default class Client
       this.ws!.send(new Uint8Array([RIBBON_TAG.EXTENSION, EXTENSION_TAG.PING]))
     }, 5000)
   }
-  
+
+  /** @hidden */
   #_wsOnMessage(data: any)
   {
     const messages = decode(new Uint8Array(data), this.unpackr)
     if (messages?.error) return      
     for (const x of messages) this.handleInternalMessage(x)
   }
-  
+
+  /** @hidden */
   #_wsOnClose(e: any)
   {
     /* emit this */
@@ -267,7 +276,7 @@ export default class Client
             }
           })
         
-          this.events.emit(EVENTS_TYPES.SESSION_READY, this.ribbon.endpoint)
+          this.events.emit(EVENTS_TYPES.SESSION_READY, this.ribbon.endpoint!)
         }
 
         else

@@ -10,3 +10,4 @@ src/
 tsconfig.json
 notes.md
 .gitattributes
+docs/

@@ -9,10 +9,10 @@ notes bucket
 ## api 
 
 - Main (`tetr.io/api`)
-  - [x] `/server/environment` • `0.0.1-wip`
-  - [x] `/server/ribbon` • `0.0.1-wip`
-  - [x] `${spool}/spool` • `0.0.1-wip`
-  - [ ] `/users/me`
+  - [x] `/server/environment` • `0.0.1-dev`
+  - [x] `/server/ribbon` • `0.0.1-dev`
+  - [x] `${spool}/spool` • `0.0.1-dev`
+  - [x] `/users/me` • `0.0.1-dev`
   - [ ] `/users/${user}/exists`
   
 - Tetra Channel (`ch.tetr.io/api`)

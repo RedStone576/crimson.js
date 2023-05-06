@@ -1,12 +1,12 @@
 /* might reconstruct this */
 
 export const EVENTS_TYPES = {
-  /* for the client itself */
+  /** for the client itself */
   SESSION_READY:     "ready",
   SESSION_ERROR:     "error",
   SESSION_DEAD:      "dead",
 
-  /* for commands sent from client to ribbon */
+  /** for commands sent from client to ribbon */
   CLIENT_RESUME:            "resume",
   CLIENT_AUTHORIZE:         "authorize",
   CLIENT_JOIN_ROOM:         "room.join",
@@ -18,11 +18,13 @@ export const EVENTS_TYPES = {
   CLIENT_SEND_INVITE:       "social.invite",
   CLIENT_UPDATE_PRESENCE:   "social.presence",
 
-  /* for commands received from ribbon */
+  /** @hidden unused to user */
   RIBBON_PONG:                  "pong",
   RIBBON_HELLO:                 "hello",
   RIBBON_AUTHORIZE:             "authorize",
   RIBBON_MIGRATE:               "migrate",
+  
+  /** for commands received from ribbon */
   RIBBON_ROOM_JOIN:             "room.join",
   RIBBON_ROOM_LEAVE:            "room.leave",
   RIBBON_ROOM_UPDATE:           "room.update",
@@ -45,8 +47,6 @@ export const EVENTS_TYPES = {
 
   /* both seems reversed cuz yk to make it look like you're giving a command or receiving a command */
 } as const
-
-export type EventsTypes = typeof EVENTS_TYPES[keyof typeof EVENTS_TYPES]
 
 /* export const RIBBON_ERROR = {
 } as const */

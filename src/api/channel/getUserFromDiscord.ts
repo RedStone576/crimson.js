@@ -1,4 +1,4 @@
-import { get, Nullish, Data } from "./get"
+import { get, Nullish } from "./get"
 
 interface User
 {
@@ -11,10 +11,14 @@ interface DataUser
   user: User
 }
 
-/** Get user tetr.io information based on their discord id snowflake */
+/** 
+  * Get user tetr.io information based on their discord id snowflake 
+  *
+  * @param snowflake the user discord id
+*/
 export default async function(snowflake: string): Promise<Nullish<User>>
 {
-  const res = await get<Data<DataUser>>(`users/search/${snowflake}`)
+  const res = await get<DataUser>(`users/search/${snowflake}`)
 
   if (res?.data?.user) return res.data.user
   else return null

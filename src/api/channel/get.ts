@@ -9,7 +9,7 @@ interface DataCache
   cached_until: number
 }
 
-export interface Data<T>
+interface Data<T>
 {
   success: boolean
   error:   Nullish<string>
@@ -17,7 +17,7 @@ export interface Data<T>
   data:    Nullish<T>
 }
 
-export async function get<T>(url: string): Promise<T>
+export async function get<T = Data<unknown>>(url: string): Promise<Data<T>>
 {
   const raw = await fetch(encodeURI("https://ch.tetr.io/api/" + url), {
     method: "GET",
@@ -29,5 +29,5 @@ export async function get<T>(url: string): Promise<T>
 
   const res = await raw.json()
 
-  return res as T
+  return res as Data<T>
 }

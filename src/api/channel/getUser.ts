@@ -1,4 +1,4 @@
-import { get, Nullish, Data } from "./get"
+import { get, Nullish } from "./get"
 
 interface UserBadge
 {
@@ -88,7 +88,7 @@ interface DataUser
 /** Get user object */
 export default async function(user: string): Promise<Nullish<User>>
 {
-  const res = await get<Data<DataUser>>(`users/${user.toLowerCase()}`)
+  const res = await get<DataUser>(`users/${user.toLowerCase()}`)
 
   if (res?.data?.user) return res.data.user
   else return null

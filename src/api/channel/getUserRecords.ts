@@ -1,4 +1,4 @@
-import { get, Nullish, Data } from "./get"
+import { get, Nullish } from "./get"
 
 interface RecordUser
 {
@@ -44,7 +44,7 @@ interface UserRecords
 /** Get user recent records object */
 export default async function(user: string): Promise<Nullish<UserRecords>>
 {
-  const res = await get<Data<UserRecords>>(`users/${user}/records`)
+  const res = await get<UserRecords>(`users/${user}/records`)
 
   if (res?.data) return res.data
   else return null
