@@ -1,6 +1,6 @@
 import fetch from "node-fetch"
 
-export default async function (token: string, url: string, body: any): Promise<any>
+export default async function post(token: string, url: string, body: any): Promise<any>
 {
   let res = await fetch(encodeURI("https://tetr.io/api/" + url), {
     body: JSON.stringify(body),

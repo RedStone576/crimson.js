@@ -8,10 +8,10 @@ shout out to them !!
 
 ---
 
-[my discord server](https://discord.gg/C2qHe7F)  
-[tetr.io bot docs](https://github.com/Poyo-SSB/tetrio-bot-docs)   
-[tetra channel api docs](https://tetr.io/about/api)   
-[npm](https://www.npmjs.com/package/crimson.js)   
+- [my discord server](https://discord.gg/C2qHe7F) - in case you're interested 
+- [tetr.io bot docs](https://github.com/Poyo-SSB/tetrio-bot-docs) - unofficial main game api docs, slightly outdated but still relevant
+- [tetra channel api docs](https://tetr.io/about/api) - for ch.tetr.io
+- [npm](https://www.npmjs.com/package/crimson.js) - npm page
 
 ---
 

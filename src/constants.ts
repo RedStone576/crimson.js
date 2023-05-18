@@ -1,5 +1,6 @@
 /* might reconstruct this */
 
+/** raw events name */
 export const EVENTS_TYPES = {
   /** for the client itself */
   SESSION_READY:     "ready",
@@ -18,11 +19,12 @@ export const EVENTS_TYPES = {
   CLIENT_SEND_INVITE:       "social.invite",
   CLIENT_UPDATE_PRESENCE:   "social.presence",
 
-  /** @hidden unused to user */
-  RIBBON_PONG:                  "pong",
-  RIBBON_HELLO:                 "hello",
-  RIBBON_AUTHORIZE:             "authorize",
-  RIBBON_MIGRATE:               "migrate",
+  /** @hidden unused for user */
+  RIBBON_PONG:      "pong",
+  RIBBON_HELLO:     "hello",
+  RIBBON_AUTHORIZE: "authorize",
+  RIBBON_MIGRATE:   "migrate",
+  RIBBON_MIGRATED:  "migrated", 
   
   /** for commands received from ribbon */
   RIBBON_ROOM_JOIN:             "room.join",
@@ -44,6 +46,7 @@ export const EVENTS_TYPES = {
   RIBBON_USER_DM:               "social.dm",
   RIBBON_PLAYERS_ONLINE:        "social.online"
   //RIBBON_ROOM_GAME_READY:     "",
+  //"notify"
 
   /* both seems reversed cuz yk to make it look like you're giving a command or receiving a command */
 } as const

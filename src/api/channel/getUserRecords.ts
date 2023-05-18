@@ -42,7 +42,7 @@ interface UserRecords
 }
 
 /** Get user recent records object */
-export default async function(user: string): Promise<Nullish<UserRecords>>
+export default async function getUserRecords(user: string): Promise<Nullish<UserRecords>>
 {
   const res = await get<UserRecords>(`users/${user}/records`)
 

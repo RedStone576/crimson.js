@@ -1,9 +1,9 @@
 import get from "./get"
 import getDespool from "./getDespool"
 
-export default async function(token: string): Promise<any>
+export default async function getSpool(token: string): Promise<any>
 {
-  const res = await get(token, "server/ribbon")
+  const res = await get<any>(token, "server/ribbon")
 
   if (res?.success)
   {

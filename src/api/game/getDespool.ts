@@ -1,6 +1,6 @@
 import fetch from "node-fetch"
 
-export default async function (token: string, spool: any): Promise<any>
+export default async function getDespool(token: string, spool: any): Promise<any>
 {
   let res: any = await fetch(encodeURI("https://" + spool + "/spool"), {
     method: "GET",

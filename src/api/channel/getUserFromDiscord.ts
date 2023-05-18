@@ -16,7 +16,7 @@ interface DataUser
   *
   * @param snowflake the user discord id
 */
-export default async function(snowflake: string): Promise<Nullish<User>>
+export default async function getUserFromDiscord(snowflake: string): Promise<Nullish<User>>
 {
   const res = await get<DataUser>(`users/search/${snowflake}`)
 

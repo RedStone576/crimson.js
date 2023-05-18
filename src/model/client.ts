@@ -2,7 +2,11 @@ import { Packr, Unpackr } from "msgpackr"
 import EventEmitter       from "events"
 import WebSocket          from "ws"
 
-import { EVENTS_TYPES } from "~/constant"
+import { fallbackEmitter } from "./emitter"
+import Relationship        from "./relationship"
+import Room                from "./room"
+
+import { EVENTS_TYPES } from "~/constants"
 import * as Api         from "~/api/mod"
 import * as Types       from "~/types"
 
@@ -21,23 +25,13 @@ const EXTENSION_TAG = {
   PONG: 0x0C  // server
 }
 
-interface Emitter<E extends Record<string, any>> 
-{
-  on   <T extends keyof E> (event: T, listener: (data: E[T]) => void): this
-  once <T extends keyof E> (event: T, listener: (data: E[T]) => void): this
-  off  <T extends keyof E> (event: T, listener: (data: E[T]) => void): this
-  emit <T extends keyof E> (event: T, args: E[T]): boolean
-
-  // fallback to unknown
-  on   <T extends Exclude<string, keyof E>>(event: T, listener: (data: unknown) => void): this
-  once <T extends Exclude<string, keyof E>>(event: T, listener: (data: unknown) => void): this
-  off  <T extends Exclude<string, keyof E>>(event: T, listener: (data: unknown) => void): this
-  emit <T extends Exclude<string, keyof E>>(event: T, data: any): boolean
-}
-
 export default class Client 
 {
-  public events: Emitter<Types.ClientEvents>
+  // event emitters and models interface
+  // check ../types.ts
+  public events: fallbackEmitter<Types.ClientEvents>
+  public relationship: Relationship
+  public room: Room
 
   public user: {
     token?:    string,
@@ -62,17 +56,20 @@ export default class Client
     messageQueue?:   any[]
     lastPong?:       number,
     lastSent?:       number,
-    lastReceived?:   string | number,
+    lastReceived?:   string | number
   }
 
-  private ws?:       any
-  private packr?:    any
-  private unpackr?:  any
+  private ws:        any
+  private packr:     any
+  private unpackr:   any
   private heartbeat: any
  
   constructor(token: string)
   {
-    this.events  = new EventEmitter()
+    this.events       = new EventEmitter()
+    this.relationship = new Relationship()
+    this.room         = new Room()
+    
     this.user    = {}
     this.ribbon  = {}
     this.session = {}
@@ -226,7 +223,7 @@ export default class Client
 
   private handleCommand(msg: any)
   {
-    switch(msg.command)
+    switch (msg.command)
     {
       case EVENTS_TYPES.RIBBON_PONG:
       {
@@ -305,6 +302,11 @@ export default class Client
 
   private handleMessage(msg: any): void
   {
+    //console.log(msg)
+
+    this.relationship.bindEvent(msg)
+    this.room.bindEvent(msg)
+    
     this.events.emit(msg.command, msg.data)
   }
 
@@ -317,6 +319,56 @@ export default class Client
     this.session.dead = true
     this.events.emit(EVENTS_TYPES.SESSION_DEAD, !!sad)
   }
+
+  /* user consumed utils */
+
+  /**
+   * send a direct message to a user
+   *
+   * @param the user's id.
+   * @param the message.
+   * @returns if the client succeeded sending the dm, false if the target might've been not friended by the client
+   */
+  sendDM(target: string, message: string): boolean
+  {
+    this.sendMessage({
+      command: EVENTS_TYPES.CLIENT_SEND_DM,
+      data: {
+        recipient: target,
+        msg: message
+      }
+    })
+
+    return true
+  }
+
+  /**
+    join a room
+
+    @param room's code, usually 4 letters long and always case-insensitive
+  */
+  joinRoom(code: string): void
+  {
+    this.sendMessage({
+      command: EVENTS_TYPES.CLIENT_JOIN_ROOM,
+      data: code
+    })
+  }
+  
+  // type this
+  editPresence(status: string, detail: string): void
+  {
+    this.sendMessage({
+      command: "social.presence",
+      data: {
+        status: status || "online",
+        detail: detail || ""
+      }
+    })
+  }
+
+  getConnections(): void
+  {}
 }
 
 /* */

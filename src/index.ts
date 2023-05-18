@@ -1,4 +1,4 @@
 export { default as Client } from "./model/client"
-export * as Api              from "./api/mod"
-export * as Constant         from "./constant"
+export * as api              from "./api/mod"
+export * as CONSTANTS        from "./constants"
 export type * as Types       from "./types"

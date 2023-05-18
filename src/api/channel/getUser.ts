@@ -57,7 +57,7 @@ interface User
 {
   _id:             string
   username:        string
-  role:            "anon" | "user" | "bot" | "mod" | "admin" | "banned"
+  role:            "banned" | "anon" | "user" | "bot" | "halfmod" | "mod" | "admin" | "sysop"
   ts:              Nullish<string>
   botmaster:       Nullish<string>
   badges:          UserBadge[]
@@ -86,7 +86,7 @@ interface DataUser
 }
 
 /** Get user object */
-export default async function(user: string): Promise<Nullish<User>>
+export default async function getUser(user: string): Promise<Nullish<User>>
 {
   const res = await get<DataUser>(`users/${user.toLowerCase()}`)
 

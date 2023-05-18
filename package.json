@@ -24,7 +24,8 @@
         "check": "tsc --noEmit",
         "check-watch": "tsc --noEmit --pretty --watch",
         "build": "tsc",
-        "bundle": "npx tsup src/index.ts --format cjs,esm --dts --treeshake --target es2022"
+        "bundle": "tsup src/index.ts --format cjs,esm --dts --target es2022",
+        "docs": "typedoc src/index.ts --plugin typedoc-plugin-missing-exports --internalModule ref"
     },
     "dependencies": {
         "msgpackr": "^1.8.5",
@@ -37,6 +38,7 @@
         "@types/ws": "^8.5.4",
         "tsup": "^6.7.0",
         "typedoc": "^0.24.6",
+        "typedoc-plugin-missing-exports": "^2.0.0",
         "typescript": "^5.0.4"
     }
 }
