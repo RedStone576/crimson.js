@@ -1,73 +1,197 @@
+// TODO: make a message model and include `mentions` property, yk like the one js discord lib has
 import EventEmitter     from "events"
-
 import { TypedEmitter } from "./emitter"
-import message          from "./message"
+import { EVENTS_TYPES } from "~/constants"
 
-import { RoomConfig }             from "~/types"
-import { EVENTS_TYPES as EVENTS } from "~/constants"
-
-/** 
- * maps the raw events, probably will only cover a small portion.
- * for other room specific events that are not included you should listen to the raw events instead 
- */
-const roomEventsMap = {
-  [EVENTS.RIBBON_ROOM_UPDATE]:           "update",
-  [EVENTS.RIBBON_ROOM_HOST_UPDATE]:      "hostSwitch",
-  [EVENTS.RIBBON_ROOM_PLAYER_REMOVE]:    "playerRemove",
-  [EVENTS.RIBBON_ROOM_CHAT]:             "messageCreate",
-  //[EVENTS.RIBBON_ROOM_PLAYER_ADD]:       "room.addplayer",
-  //[RIBBON_ROOM_CHAT_CLEAR]:              "room.chat.clear",
-} as const
-
-// holy shit
-// i have no idea what the hell am i doing
-// i legit spent like solid 45 minutes for this
-// why the heck cant i just do like `[roomEventsMap[EVENTS.RIBBON_ROOM_CHAT]]: { something }`
-// how am i suppose to make this look pretty 
-type MappedRoomEvents = {
-  [K in typeof roomEventsMap[keyof typeof roomEventsMap]]: 
-    K extends typeof roomEventsMap[typeof EVENTS.RIBBON_ROOM_CHAT] ? message<"room">
-    : never
-}
-
-/** room social interface */
-// not a standalone class
-export default class Room extends (EventEmitter as { new (): TypedEmitter<MappedRoomEvents> })
+export default class Room extends (EventEmitter as { new (): TypedEmitter<{}> })
 {
-  //config
+  type:    "public" | "private" | null
+  state:   "lobby" | "ingame" | null
+  code:    string | null
+  name:    string | null
+  host:    string | null
+  creator: string | null
+  options: any
+  
+  players: Array<{
+    _id:       string
+    username:  string
+    verified:  boolean
+    bot:       boolean
+    supporter: boolean
+    anon:      boolean
+    xp:        number
+    country:   string | null
+    bracket:  "player" | "spectator" | "observer"
+    role:     "anon" | "user" | "bot" | "halfmod" | "mod" | "admin" | "sysop"
 
-  public type: "public" | "private" | null
-  public code: string | null
+    badges: Array<{
+      id:    string
+      label: string
+      ts:    string
+    }>
 
-  constructor()
-  {
-    super()
-
-    this.type = null
-    this.code = null
-  }
+    record: {
+      games:  number
+      wins:   number
+      streak: number
+    }
+  }>
 
   /** @hidden */
-  bindEvent(event: any)
+  private _propGet: any
+  /** @hidden */
+  private _propSet: any
+  
+  constructor(_propGet: any, _propSet: any)
   {
-    switch (event.command)
+    super()
+    
+    this.type    = null
+    this.state   = null
+    this.code    = null
+    this.name    = null
+    this.host    = null
+    this.creator = null
+    this.options = {}
+    this.players = []
+  
+    this._propGet = _propGet
+    this._propSet = _propSet
+  }
+
+  /** join a room */
+  join(code: string): Promise<boolean | Pick<this, "type" | "state" | "code" | "name" | "host" | "creator" | "options" | "players">>
+  {
+    return new Promise((resolve: (x: Awaited<ReturnType<typeof this.join>>) => void, reject: any) =>
     {
-      case EVENTS.RIBBON_ROOM_CHAT:
+      // return false if client is already in a room
+      // might make it automatically leave and then join the new room later
+      if (this.code !== null) return resolve(false)
+    
+      this._propGet("sendMessage")({
+        command: EVENTS_TYPES.CLIENT_JOIN_ROOM,
+        data: code
+      })      
+
+      // TODO: type data
+      // listen to room.update event instead of room.join cuz it has more data 
+      this._propGet("events").once(EVENTS_TYPES.RIBBON_ROOM_UPDATE, (data: any) => 
       {
-        this.emit(roomEventsMap[EVENTS.RIBBON_ROOM_CHAT], new message("room", event.data))
-        break
-      }
-    }
+        this.type    = data.type
+        this.state   = data.state
+        this.code    = data.id
+        this.name    = data.name
+        this.host    = data.owner
+        this.creator = data.creator
+        this.options = data.options
+        this.players = data.players
+
+        return resolve({
+          type:    data.type,
+          state:   data.state,
+          code:    data.id,
+          name:    data.name,
+          host:   data.owner,
+          creator: data.creator,
+          options: data.options,
+          players: data.players
+        })
+      })
+    })
   }
 
-  setConfig(config: RoomConfig)
+  /** leave the current room */
+  leave(): Promise<boolean>
   {
-  
+    return new Promise((resolve: (x: boolean) => void, reject: any) =>
+    {
+      if (this.code === null) return resolve(false)
+      
+      this._propGet("sendMessage")({
+        command: EVENTS_TYPES.CLIENT_LEAVE_ROOM
+      })
+
+      this._propGet("events").once(EVENTS_TYPES.RIBBON_ROOM_LEAVE, (id: string) =>
+      {
+        // basically reset to init state
+        this.type    = null
+        this.state   = null
+        this.code    = null
+        this.name    = null
+        this.host    = null
+        this.creator = null
+        this.options = {}
+        this.players = []
+
+        // if id === this.code then this 
+        return resolve(true)
+      })
+    })
   }
 
-  // yeah probably not
-  /*getMessageLog()
+  /** 
+   * create a room 
+   *
+   * for "safety" reason, if no argument were provided the room will default to private
+   * trust me, accidentally creating a public room sucksss
+   */
+  create(type: "public" | "private" = "private"): Promise<boolean | Pick<this, "type" | "state" | "code" | "name" | "host" | "creator" | "options" | "players">>
   {
-  
-  }*/
+    return new Promise((resolve: (x: Awaited<ReturnType<typeof this.join>>) => void, reject: any) =>
+    {
+      if (this.code !== null) return resolve(false)
+
+      this._propGet("sendMessage")({
+        command: EVENTS_TYPES.CLIENT_CREATE_ROOM,
+        data: type
+      })
+
+      this._propGet("events").once(EVENTS_TYPES.RIBBON_ROOM_UPDATE, (data: any) =>
+      {
+        this.type    = data.type
+        this.state   = data.state
+        this.code    = data.id
+        this.name    = data.name
+        this.host    = data.owner
+        this.creator = data.creator
+        this.options = data.options
+        this.players = data.players
+
+        return resolve({
+          type:    data.type,
+          state:   data.state,
+          code:    data.id,
+          name:    data.name,
+          host:    data.owner,
+          creator: data.creator,
+          options: data.options,
+          players: data.players
+        })
+      })
+    })
+  }
+
+  /** update the current room's config */
+  update(config: any): Promise<boolean>
+  {
+    return new Promise((resolve: (x: boolean) => void, reject: any) =>
+    {
+      if (this._propGet("user").id !== this.host) return resolve(false)
+      
+      //
+      return resolve(true)
+    })
+  }
+
+  kick() {}
+  ban() {}
+  clearChat() {}
+  createMessage() {}
+  invite() {}
+  start() {}
+  abort() {}
+  transferHost() {}
+  switchBracket(user: any, bracket: "spectator" | "player") {}
 }
+

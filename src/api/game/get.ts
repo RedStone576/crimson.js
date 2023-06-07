@@ -14,7 +14,7 @@ addExtension({
 })
 
 const { unpack } = new Unpackr({
-  bundleStrings: false
+  bundleStrings: true
 })
 
 interface Data
@@ -46,36 +46,3 @@ export default async function get<T = unknown>(token: string, url: string, jsonE
     return null
   }
 }
-
-/*export default async function get(token: string, url: string, jsonExclusive?: boolean): Promise<any>
-{
-  let res: any
-    
-  try 
-  {
-    res = await fetch(encodeURI("https://tetr.io/api/" + url), {
-      method: "GET",
-      headers: {
-        "Authorization": "Bearer " + token,
-        "User-Agent": "v8/001",
-        "Accept": !!jsonExclusive ? "application/json" : "application/vnd.osk.theorypack"
-      }
-    })
-    
-    res = !!jsonExclusive ? (await res.text()) : (await res.arrayBuffer())
-    res = !!jsonExclusive ? JSON.parse(res)    : unpack(Buffer.from(res))
-    
-    return res
-  } 
-  
-  catch (e: any) 
-  {
-    console.log(res ? JSON.stringify(res) : undefined)
-    console.log(e.message)
-    console.log(url)
-    
-    throw e
-    
-    return null
-  }
-}*/

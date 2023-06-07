@@ -1,11 +1,29 @@
 # Changelog
 
-## 0.0.5-dev-but-not-quite-done-yet-but-i-want-to-push-it
-- i made `changelog.md` !!
-- added "sysop" and "halfmod" in the role field of the user type to accommodate the new moderator roles split. the old admin users is now "sysop" and the new community moderator is called "halfmod" internally
-- split event emitter
-- create an interface for the tetr.io friend system
-- create an interface for the room too
+## still-not-0.0.5-dev
+- getRibbonVersion -> getRibbonSignature
+- created half baked `src/model/relationship.ts`  
+  basically an event emitter + the tetrio social interface  
+  so you **will** able to do stuff like  
+  ```js
+  client.relationship.add("<userID>")
+  client.relationship.remove("<userID>")
+  client.relationship.block("<userID>")
+  
+  client.relationship.on("dm", () => {})
+  // ... etc idk im not done with these
+  ```
+- created monkey made `src/model/room.ts`  
+  same thing but for the room  
+  ```js
+  client.room.code // get the room code
+  client.room.updateConfig({ ... })
+  client.room.on("chat", () => {})
+  // ...
+  ```
+- created `src/util/`
+- almost create a logger for debugging things but im too tired
+- also almost create some rest user actions on `src/api/game/`
 
 
 ## 0.0.4-dev
@@ -21,4 +39,4 @@
 
 
 ## 0.0.1-dev
-- write later
+- bing bang

@@ -44,7 +44,8 @@ export const EVENTS_TYPES = {
   RIBBON_USER_PRESENCE:         "social.presence", 
   RIBBON_USER_INVITE:           "social.invite",
   RIBBON_USER_DM:               "social.dm",
-  RIBBON_PLAYERS_ONLINE:        "social.online"
+  RIBBON_USER_DM_FAIL:          "social.dmfail",
+  RIBBON_PLAYERS_ONLINE:        "social.online",
   //RIBBON_ROOM_GAME_READY:     "",
   //"notify"
 

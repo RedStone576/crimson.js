@@ -27,24 +27,25 @@ const EXTENSION_TAG = {
 
 export default class Client 
 {
-  // event emitters and models interface
-  // check ../types.ts
-  public events: fallbackEmitter<Types.ClientEvents>
-  public relationship: Relationship
-  public room: Room
-
-  public user: {
+  user: {
     token?:    string,
     id?:       string,
     username?: string
   }
 
+  // check ../types.ts
+  events:       fallbackEmitter<Types.ClientEvents>
+  relationship: Omit<Relationship, "_propGet" | "_propSet">
+  room:         Omit<Room, "_propGet" | "_propSet">
+
+  /* */
+ 
   private ribbon: {
-    version?:         string,
     endpoint?:        string,
     spoolToken?:      string,
     migrateEndpoint?: string,
     resumeToken?:     string
+    signature?:       {},
   }
 
   private session: {
@@ -59,21 +60,24 @@ export default class Client
     lastReceived?:   string | number
   }
 
+  // legit too late but better than never
+  //private debug: {}
+  
   private ws:        any
   private packr:     any
   private unpackr:   any
   private heartbeat: any
  
   constructor(token: string)
-  {
+  {  
     this.events       = new EventEmitter()
-    this.relationship = new Relationship()
-    this.room         = new Room()
+    this.relationship = new Relationship(this._propGet.bind(this), this._propSet.bind(this))
+    this.room         = new Room(this._propGet.bind(this), this._propSet.bind(this))
     
     this.user    = {}
     this.ribbon  = {}
     this.session = {}
-
+    
     this.user.token = token
   }
 
@@ -92,17 +96,17 @@ export default class Client
     this.user.username     = user.username
     this.ribbon.endpoint   = spool.endpoint
     this.ribbon.spoolToken = spool.token
-    this.ribbon.version    = await Api.game.getRibbonVersion(this.user.token)
+    this.ribbon.signature  = await Api.game.getRibbonSignature(this.user.token)
   
     this.ws = new WebSocket(`wss:${this.ribbon.endpoint}`, this.ribbon.spoolToken)
     
-    this.ws.on("open",    this.#_wsOnOpen.bind(this))
-    this.ws.on("message", this.#_wsOnMessage.bind(this))
-    this.ws.on("close",   this.#_wsOnClose.bind(this))
+    this.ws.on("open",    this._wsOnOpen.bind(this))
+    this.ws.on("message", this._wsOnMessage.bind(this))
+    this.ws.on("close",   this._wsOnClose.bind(this))
   }
 
   /** @hidden */
-  #_wsOnOpen()
+  private _wsOnOpen()
   {
     this.packr = new Packr({
       bundleStrings: false,
@@ -140,7 +144,7 @@ export default class Client
   }
 
   /** @hidden */
-  #_wsOnMessage(data: any)
+  private _wsOnMessage(data: any)
   {
     const messages = decode(new Uint8Array(data), this.unpackr)
     if (messages?.error) return      
@@ -148,7 +152,7 @@ export default class Client
   }
 
   /** @hidden */
-  #_wsOnClose(e: any)
+  private _wsOnClose(e: any)
   {
     /* emit this */
     //if (!!e) console.log(e)
@@ -243,10 +247,8 @@ export default class Client
             id: this.session.lastSent ?? 0,
             data: {
               token: this.user.token,
-              handling: { arr: 0, das: 0, sdf: 0, safelock: false },
-              signature: {
-                commit: this.ribbon.version
-              }
+              handling: { arr: 0, das: 0, dcd: 0, sdf: 0, safelock: false },
+              signature: this.ribbon.signature
             }
           })
 
@@ -264,6 +266,7 @@ export default class Client
         if (msg.data.success)
         {
           this.session.authed = true
+          if (!this.relationship._init) this.relationship._setInitVal(msg.data.social)
           
           this.sendMessage({
             command: "social.presence",
@@ -303,9 +306,6 @@ export default class Client
   private handleMessage(msg: any): void
   {
     //console.log(msg)
-
-    this.relationship.bindEvent(msg)
-    this.room.bindEvent(msg)
     
     this.events.emit(msg.command, msg.data)
   }
@@ -367,8 +367,46 @@ export default class Client
     })
   }
 
-  getConnections(): void
-  {}
+  // whacky ahh stuff to try to not create a cyclic reference
+  /** @hidden */
+  private _propGet(i: keyof typeof this)
+  {
+    // ugly but whatever
+    if (i === "__proto__"
+    || i === "constructor"
+    || i === "_propGet" 
+    || i === "_propSet" 
+    || i === "ws" 
+    || i === "packr" 
+    || i === "unpackr" 
+    || i === "_wsOnOpen" 
+    || i === "_wsOnClose" 
+    || i === "_wsOnMessage"
+    || i === "relationship"
+    || i === "room") return undefined
+  
+    return typeof this[i] === "function" ? (this[i] as any).bind(this) : this[i]
+  }
+
+  /** @hidden */
+  private _propSet(i: any, val: any): void
+  {
+    if (i === "__proto__"
+    || i === "constructor"
+    || i === "_propGet" 
+    || i === "_propSet" 
+    || i === "ws" 
+    || i === "packr" 
+    || i === "unpackr" 
+    || i === "_wsOnOpen" 
+    || i === "_wsOnClose" 
+    || i === "_wsOnMessage"
+    || i === "relationship"
+    || i === "room") return
+
+    //@ts-ignore
+    this[i] = val
+  }
 }
 
 /* */
