@@ -11,3 +11,5 @@ tsconfig.json
 notes.md
 .gitattributes
 docs/
+testRelationship.json
+__demo/

@@ -10,7 +10,8 @@
         "skipLibCheck": true,
         "removeComments": true,
         "paths": {
-            "~/*": ["./src/*"]
+            "~/*": ["./src/*"],
+            "~/api": ["./src/api/mod"]
         }
     },
 

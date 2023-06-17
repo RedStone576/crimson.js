@@ -2,12 +2,14 @@ import { EVENTS_TYPES as EVENTS } from "./constants"
 
 export type EventsTypes = typeof EVENTS[keyof typeof EVENTS]
 
-/** raw events */
-export type ClientEvents = {
+export type SessionEvents = {
   [EVENTS.SESSION_READY]: string
   [EVENTS.SESSION_ERROR]: string
   [EVENTS.SESSION_DEAD]:  boolean
+}
 
+/** raw ribbon events */
+export type RibbonEvents = {
   [EVENTS.RIBBON_USER_PRESENCE]: {
     user: string,
     presence: {
@@ -108,6 +110,13 @@ export type ClientEvents = {
     },
     players: unknown[]
   }
+}
+
+//////////
+
+/** client to ribbon message types */
+export type ClientEvents = {
+  
 }
 
 export interface RoomConfig 

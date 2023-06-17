@@ -2,7 +2,7 @@ import EventEmitter     from "events"
 import { TypedEmitter } from "./emitter"
 
 import { EVENTS_TYPES } from "~/constants"
-import { ClientEvents } from "~/types"
+import { RibbonEvents } from "~/types"
 import * as api         from "~/api/mod"
 
 export default class Relationship extends (EventEmitter as { new (): TypedEmitter<{}> })
@@ -64,7 +64,7 @@ export default class Relationship extends (EventEmitter as { new (): TypedEmitte
   }
 
   /** @hidden */
-  private _init: boolean
+  _init: boolean
   /** @hidden */
   private _propGet: any
   /** @hidden */
@@ -179,9 +179,9 @@ export default class Relationship extends (EventEmitter as { new (): TypedEmitte
         }
       })   
 
-      this._propGet("events").once(EVENTS_TYPES.RIBBON_USER_DM, (event: ClientEvents[typeof EVENTS_TYPES.RIBBON_USER_DM]) =>
+      this._propGet("events").once(EVENTS_TYPES.RIBBON_USER_DM, (event: RibbonEvents[typeof EVENTS_TYPES.RIBBON_USER_DM]) =>
       {
-        //hmmmm should it check the message 
+        //hmmmm should it check the message?
         resolve({
           content: event.data.content,
           content_safe: event.data.content_safe,

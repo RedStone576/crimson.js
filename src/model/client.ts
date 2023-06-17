@@ -7,7 +7,7 @@ import Relationship        from "./relationship"
 import Room                from "./room"
 
 import { EVENTS_TYPES } from "~/constants"
-import * as Api         from "~/api/mod"
+import * as Api         from "~/api"
 import * as Types       from "~/types"
 
 const globalPackr   = new Packr({ bundleStrings: false })
@@ -28,35 +28,35 @@ const EXTENSION_TAG = {
 export default class Client 
 {
   user: {
-    token?:    string,
-    id?:       string,
+    token?:    string
+    id?:       string
     username?: string
   }
 
   // check ../types.ts
-  events:       fallbackEmitter<Types.ClientEvents>
+  events:       fallbackEmitter<Types.SessionEvents & Types.RibbonEvents>
   relationship: Omit<Relationship, "_propGet" | "_propSet">
   room:         Omit<Room, "_propGet" | "_propSet">
 
   /* */
  
   private ribbon: {
-    endpoint?:        string,
-    spoolToken?:      string,
-    migrateEndpoint?: string,
+    endpoint?:        string
+    spoolToken?:      string
+    migrateEndpoint?: string
     resumeToken?:     string
-    signature?:       {},
+    signature?:       {}
   }
 
   private session: {
-    open?:           boolean,
-    dead?:           boolean,
-    authed?:         boolean,
-    id?:             string | number,
-    messageHistory?: any[],
+    open?:           boolean
+    dead?:           boolean
+    authed?:         boolean
+    id?:             string | number
+    messageHistory?: any[]
     messageQueue?:   any[]
-    lastPong?:       number,
-    lastSent?:       number,
+    lastPong?:       number
+    lastSent?:       number
     lastReceived?:   string | number
   }
 
