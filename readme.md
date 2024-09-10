@@ -1,3 +1,5 @@
+# ⚠️ USE [TRIANGLE.JS](https://github.com/Genius6942/triangle) (@haelp/teto) INSTEAD
+
 # Crimson.js 
 
 A Node.js library for tetr.​io and ch.​tetr.​io, asynchronous and typed (well, mostly)
